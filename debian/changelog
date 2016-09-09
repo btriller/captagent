@@ -1,11 +1,5 @@
-captagent (6.0.1) unstable; urgency=low
+captagent (6.1.0.20-1) unstable; urgency=low
 
-  * Fixed some DEB packaging issues
+  * Initial packaging. (Closes: #837165)
 
- -- Konstantin S. Vishnivetsky <kvishnivetsky@sipcapture.org>  Fri, 18 Sep 2015 14:27:00 +0600
-
-captagent (6.0.1) unstable; urgency=low
-
-  * Initial DEB packaging
-
- -- Konstantin S. Vishnivetsky <kvishnivetsky@sipcapture.org>  Wed, 16 Sep 2015 21:52:10 +0600
+ -- Daniel Pocock <daniel@pocock.pro>  Fri, 09 Sep 2016 16:05:30 +0200

@@ -1,19 +1,25 @@
 #!/usr/bin/make -f
 # -*- makefile -*-
 
+DEB_BUILD_MAINT_OPTIONS = hardening=+all
+DPKG_EXPORT_BUILDFLAGS = 1
+include /usr/share/dpkg/buildflags.mk
+
 # Uncomment this to turn on verbose mode.
 export DH_VERBOSE=1
 
 # This has to be exported to make some magic below work.
 export DH_OPTIONS
 
-build:
-	autoreconf -if
-	./configure --prefix=/usr --sysconfdir=/etc --libdir=/usr/lib/$(shell dpkg-architecture -qDEB_HOST_MULTIARCH)
-	make
+DEB_DH_INSTALL_ARGS := --sourcedir=debian/tmp
 
-binary-arch:
-	dh_install
+override_dh_auto_build:
+	dh_auto_build --parallel
 
+# force building in the pkgroot or it won't build
 %:
-	dh $@  --with autotools-dev
+	dh $@ --with autoreconf --builddirectory=.
+
+override_dh_auto_install:
+	dh_auto_install --destdir=debian/tmp
+

@@ -1,0 +1,3 @@
+usr/bin/captagent
+usr/lib/*/captagent/modules/*.so
+etc/captagent

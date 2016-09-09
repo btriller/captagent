@@ -62,7 +62,7 @@ status() {
 
 
 
-[ -z "$CONFIG" ]  && CONFIG=@sysconfdir@/captagent/captagent.xml
+[ -z "$CONFIG" ]  && CONFIG=/etc/captagent/captagent.xml
 
 OPTIONS="-d -f $CONFIG"
 

@@ -1,29 +1,33 @@
 Source: captagent
 Section: comm
 Priority: optional
-Maintainer: Konstantin S. Vishnivetsky <developer@unknown>
-Build-Depends:	debhelper (>= 8.0.0),
+Maintainer: Debian VoIP Team <pkg-voip-maintainers@lists.alioth.debian.org>
+Uploaders: Daniel Pocock <daniel@pocock.pro>, Konstantin S. Vishnivetsky <kvishnivetsky@sipcapture.org>
+Build-Depends:	debhelper (>= 9.0.0),
 		debconf,
 		autotools-dev,
 		dh-autoreconf,
 		bison,
 		flex,
 		libexpat-dev,
-		libjson0-dev,
+		libjson-c-dev,
 		libmysqlclient-dev,
-		libpcap0.8-dev
-Standards-Version: 6.0.1
+		libpcap-dev
+Standards-Version: 3.9.6
 Homepage: http://sipcapture.org
-Vcs-Git: git://github.com/sipcapture/captagent/tree/captagent6
+Vcs-Git: git://anonscm.debian.org/git/pkg-voip/captagent.git
+Vcs-Browser: https://anonscm.debian.org/cgit/pkg-voip/captagent.git
 
 Package: captagent
 Architecture: linux-any
-Depends: ${shlibs:Depends}, ${misc:Depends}, libpcap0.8, libexpat1
-Description: SIP capture server
- HOMER5 a robust, carrier-grade, scalable SIP Capture system and Monitoring Application with HEP/HEP2, IP Proto4 (IPIP) encapsulation & port mirroring/monitoring support right out of the box, ready to process & store insane amounts of signaling with instant search, end-to-end analysis and drill-down capabilities for ITSPs, VoIP Providers and Trunk Suppliers using SIP signaling
-
-#
-#Package: captagent-doc
-#Architecture: all
-#Description: documentation for captagent
-# <insert long description, indented with spaces>
+Depends: ${shlibs:Depends}, ${misc:Depends}
+Description: HOMER SIP capture agent
+ HOMER5 a robust, carrier-grade, scalable SIP Capture system and
+ Monitoring Application with HEP/HEP2, IP Proto4 (IPIP) encapsulation
+ & port mirroring/monitoring support right out of the box, ready to
+ process & store insane amounts of signaling with instant search,
+ end-to-end analysis and drill-down capabilities for ITSPs,
+ VoIP Providers and Trunk Suppliers using SIP signaling.
+ .
+ This package provides the agent for collecting data on any SIP server
+ and forwarding it to the HOMER server for analysis.
