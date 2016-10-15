@@ -10,7 +10,7 @@ Build-Depends:	debhelper (>= 9.0.0),
 		bison,
 		flex,
 		libexpat-dev,
-		libjson-c-dev,
+		libjson0-dev,
 		libmysqlclient-dev,
 		libpcap-dev
 Standards-Version: 3.9.6
