@@ -1,3 +1,9 @@
+captagent (6.1.0.20-1~bpo7+1) wheezy-backports; urgency=medium
+
+  * Build for wheezy-backports.
+
+ -- Bastian Triller <bastian.triller@gmail.com>  Sat, 15 Oct 2016 03:04:07 +0200
+
 captagent (6.1.0.20-1) unstable; urgency=low
 
   * Initial packaging. (Closes: #837165)
