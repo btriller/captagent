@@ -319,49 +319,36 @@ void callback_proto(unsigned char *arg, struct pcap_pkthdr *pkthdr, unsigned cha
     uint32_t ip_ver;
     int ipip_offset = 0, action_idx = 0;
     uint16_t type_ip = 0;
-    uint8_t hdr_preset = 0, hdr_offset = 0, vlan = 0;
+    uint8_t hdr_offset = 0, vlan = 0;
     uint8_t ip_proto = 0, erspan_offset = 0;
     uint8_t tmp_ip_proto = 0, tmp_ip_len = 0, is_only_gre = 0;
 
-    unsigned char* ethaddr  = NULL;
-    unsigned char* mplsaddr = NULL;
-
     uint8_t loc_index = (uint8_t) *arg;
+    uint8_t hdr_len = profile_socket[loc_index].hdr_len;
+    uint16_t dlt = pcap_datalink(sniffer_proto[loc_index]);
 
     // Check if GRE/ERSPAN filter is setup
     if(profile_socket[loc_index].erspan == 1)
     {
         unsigned char *tmp_pkt = packet;
-        //unsigned int extra_sll = 0;
 
-        /* if (profile_socket[loc_index].link_type == DLT_LINUX_SLL) { */
-        /*     extra_sll = 2; */
-        /* } */
-
-        memcpy(&tmp_ip_proto, (packet + link_offset + IPPROTO_OFFSET /* + extra_sll */), 1);
-
-        /* if(tmp_ip_proto != GRE_PROTO && profile_socket[loc_index].link_type == DLT_LINUX_SLL) */
-        /* { */
-        /*     extra_sll = 6; */
-        /*     memcpy(&tmp_ip_proto, (packet + ETHHDR_SIZE + IPPROTO_OFFSET + extra_sll), 1); */
-        /* } */
+        memcpy(&tmp_ip_proto, (packet + hdr_len + IPPROTO_OFFSET /* + extra_sll */), 1);
 
         /**
           For ERSPAN packets, the "protocol type" field value in the GRE header
           is 0x88BE (ERSPAN type II) or 0x22EB (ERSPAN type III).
          **/
-
         if(tmp_ip_proto == GRE_PROTO)
         {
-            memcpy(&tmp_ip_len, (packet + link_offset /* + extra_sll */), 1);
+            memcpy(&tmp_ip_len, (packet + hdr_len /* + extra_sll */), 1);
             tmp_ip_len = (tmp_ip_len & IPLEN_MASK) * 4;                // LSB 4 bits: lenght in 32-bit words
-            tmp_pkt = tmp_pkt + link_offset /* + extra_sll */ + tmp_ip_len ; // GRE Protocol_type field for ERSPAN version
+            tmp_pkt = tmp_pkt + hdr_len /* + extra_sll */ + tmp_ip_len ; // GRE Protocol_type field for ERSPAN version
 
             // ERSPAN Type II
             if(tmp_pkt[2] == 0x88 && tmp_pkt[3] == 0xbe) {
                 // 1. Normal GRE header (4 bytes)
                 if(tmp_pkt[0] == 0x00 && tmp_pkt[1] == 0x00) {
-                    erspan_offset = link_offset /* + extra_sll */ + tmp_ip_len + GREHDR_SIZE; // Ethernet + IP + GRE
+                    erspan_offset = hdr_len /* + extra_sll */ + tmp_ip_len + GREHDR_SIZE; // Ethernet + IP + GRE
                                                                                               // Check if it's ERSPAN Type II (8 bytes of ERSPAN II)
                     if(tmp_pkt[4]>>4 == 1) {
                         erspan_offset += ERSPAN_II_OFF; // Ethernet + IP + GRE II (GRE+SeqNum) + ERSPAN II
@@ -369,7 +356,7 @@ void callback_proto(unsigned char *arg, struct pcap_pkthdr *pkthdr, unsigned cha
                 }
                 // 2. Extended GRE header (4 bytes GRE + 4 Sequence Number)
                 else if(tmp_pkt[0] == 0x10 && tmp_pkt[1] == 0x00) {
-                    erspan_offset = link_offset /* + extra_sll */ + tmp_ip_len + GREHDR_SIZE_II; // Ethernet + IP + GRE II
+                    erspan_offset = hdr_len /* + extra_sll */ + tmp_ip_len + GREHDR_SIZE_II; // Ethernet + IP + GRE II
                                                                                                  // Check if it's ERSPAN Type II (8 bytes of ERSPAN II)
                     if(tmp_pkt[8]>>4 == 1) {
                         erspan_offset += ERSPAN_II_OFF; // Ethernet + IP + GRE II (GRE+SeqNum) + ERSPAN II
@@ -380,7 +367,7 @@ void callback_proto(unsigned char *arg, struct pcap_pkthdr *pkthdr, unsigned cha
             else if(tmp_pkt[2] == 0x22 && tmp_pkt[3] == 0xeb) {
                 // 1. Normal GRE header (4 bytes)
                 if(tmp_pkt[0] == 0x00 && tmp_pkt[1] == 0x00) {
-                    erspan_offset = link_offset /* + extra_sll */ + tmp_ip_len + GREHDR_SIZE; // Ethernet + IP + GRE
+                    erspan_offset = hdr_len /* + extra_sll */ + tmp_ip_len + GREHDR_SIZE; // Ethernet + IP + GRE
                                                                                               // Check if it's ERSPAN Type III (12 bytes of ERSPAN II)
                     if(tmp_pkt[4]>>4 == 2) {
                         erspan_offset += ERSPAN_III_OFF; // Ethernet + IP + GRE II (GRE+SeqNum) + ERSPAN II
@@ -388,7 +375,7 @@ void callback_proto(unsigned char *arg, struct pcap_pkthdr *pkthdr, unsigned cha
                 }
                 // 2. Extended GRE header (4 bytes GRE + 4 Sequence Number)
                 else if(tmp_pkt[0] == 0x10 && tmp_pkt[1] == 0x00) {
-                    erspan_offset = link_offset /* + extra_sll */ + tmp_ip_len + GREHDR_SIZE_II; // Ethernet + IP + GRE II
+                    erspan_offset = hdr_len /* + extra_sll */ + tmp_ip_len + GREHDR_SIZE_II; // Ethernet + IP + GRE II
                                                                                                  // Check if it's ERSPAN Type III (12 bytes of ERSPAN II)
                     if(tmp_pkt[8]>>4 == 2) {
                         erspan_offset += ERSPAN_III_OFF; // Ethernet + IP + GRE II (GRE+SeqNum) + ERSPAN III
@@ -399,11 +386,11 @@ void callback_proto(unsigned char *arg, struct pcap_pkthdr *pkthdr, unsigned cha
             else {
                 // 1. Normal GRE header (4 bytes)
                 if(tmp_pkt[0] == 0x00 && tmp_pkt[1] == 0x00) {
-                    erspan_offset = link_offset /* + extra_sll */ + tmp_ip_len + GREHDR_SIZE;     // Ethernet + IP + GRE
+                    erspan_offset = hdr_len /* + extra_sll */ + tmp_ip_len + GREHDR_SIZE;     // Ethernet + IP + GRE
                 }
                 // 2. Extended GRE header (4 bytes GRE + 4 Sequence Number)
                 else if(tmp_pkt[0] == 0x10 && tmp_pkt[1] == 0x00) {
-                    erspan_offset = link_offset /* + extra_sll */ + tmp_ip_len + GREHDR_SIZE_II; // Ethernet + IP + GRE II
+                    erspan_offset = hdr_len /* + extra_sll */ + tmp_ip_len + GREHDR_SIZE_II; // Ethernet + IP + GRE II
                 }
 
                 // NOTE: if it's only GRE, could be that the following layer is IP instead of Ethernet, so we have to check the protocol type
@@ -428,7 +415,7 @@ void callback_proto(unsigned char *arg, struct pcap_pkthdr *pkthdr, unsigned cha
     }
 
 
-    if(type_datalink == DLT_MTP2) {
+    if(dlt == DLT_MTP2) {
 
         snprintf(mac_src, sizeof(mac_src), "00-01-02-03-04-05");
         snprintf(mac_dst, sizeof(mac_dst), "05-04-03-02-01-00");
@@ -441,7 +428,7 @@ void callback_proto(unsigned char *arg, struct pcap_pkthdr *pkthdr, unsigned cha
 
         _msg.cap_packet = (void *) packet;
         _msg.cap_header = (void *) pkthdr;
-        _msg.hdr_len = link_offset;
+        _msg.hdr_len = hdr_len;
         _msg.rcinfo.src_ip = ip_src;
         _msg.rcinfo.dst_ip = ip_dst;
         _msg.rcinfo.src_mac = mac_src;
@@ -463,28 +450,25 @@ void callback_proto(unsigned char *arg, struct pcap_pkthdr *pkthdr, unsigned cha
         return;
     }
 
+    /* Check if ETHER TYPE is Ethernet or Linux Cooked */
+    if (dlt == DLT_LINUX_SLL) {
+        sll = (struct sll_header *)packet;
+    } else if (type_datalink == DLT_LINUX_SLL2) {
+        sll2 = (struct sll2_header *)packet;
+    } else {
+        eth = (struct ether_header *)packet;
+    }
+
     /** DATALINK LAYER **/
-
-    memcpy(&ethaddr, (packet + 12), 2);
-    memcpy(&mplsaddr, (packet + 16), 2);
-
-    if (ntohs((uint16_t)*(&ethaddr)) == ETHERTYPE_VLAN) {
-        if (ntohs((uint16_t)*(&mplsaddr)) == MPLS_UNI) {
+    if (ntohs((uint16_t)*(packet + hdr_len - 2)) == ETHERTYPE_VLAN) {
+        if (ntohs((uint16_t)*(packet + hdr_len + 2)) == MPLS_UNI) {
+            // assume only one MPLS label after 802.1Q tag
             hdr_offset = 8;
             vlan = 1;
         } else {
             hdr_offset = 4;
             vlan = 2;
         }
-    }
-
-    /* Check if ETHER TYPE is Ethernet or Linux Cooked */
-    if (type_datalink == DLT_LINUX_SLL) {
-        sll = (struct sll_header *)(packet + hdr_preset);
-    } else if (type_datalink == DLT_LINUX_SLL2) {
-        sll2 = (struct sll2_header *)(packet + hdr_preset);
-    } else {
-        eth = (struct ether_header *)(packet + hdr_preset);
     }
 
     if (eth) {
@@ -497,17 +481,20 @@ void callback_proto(unsigned char *arg, struct pcap_pkthdr *pkthdr, unsigned cha
             // IP TYPE = 0x86dd (IPv6) or 0x0800 (IPv4) or (0x8100 VLAN)
             type_ip = ntohs(eth->ether_type);
         }
-        }
+    }
     /* Linux cooked capture (v1 and v2) shows only Source MAC address */
     else if (sll) {
-        snprintf(mac_src, sizeof(mac_src), "%.2X-%.2X-%.2X-%.2X-%.2X-%.2X", sll->sll_addr[0], sll->sll_addr[1], sll->sll_addr[2], sll->sll_addr[3], sll->sll_addr[4], sll->sll_addr[5]);
-        if(vlan == 0) {
-            // IP TYPE = 0x86dd (IPv6) or 0x0800 (IPv4)
+        snprintf(mac_src, sizeof(mac_src), "%.2X-%.2X-%.2X-%.2X-%.2X-%.2X",
+                sll->sll_addr[0], sll->sll_addr[1], sll->sll_addr[2], sll->sll_addr[3], sll->sll_addr[4], sll->sll_addr[5]);
+        if(vlan == 0 || vlan == 2) {
+            // IP TYPE = 0x86dd (IPv6) or 0x0800 (IPv4) or (0x8100 VLAN)
             type_ip = ntohs(sll->sll_protocol);
+        }
     }
-    } else if (sll2) {
-        snprintf(mac_src, sizeof(mac_src), "%.2X-%.2X-%.2X-%.2X-%.2X-%.2X", sll2->sll2_addr[0], sll2->sll2_addr[1], sll2->sll2_addr[2], sll2->sll2_addr[3], sll2->sll2_addr[4], sll2->sll2_addr[5]);
-        if(vlan == 0) {
+    else if (sll2) {
+        snprintf(mac_src, sizeof(mac_src), "%.2X-%.2X-%.2X-%.2X-%.2X-%.2X",
+                sll2->sll2_addr[0], sll2->sll2_addr[1], sll2->sll2_addr[2], sll2->sll2_addr[3], sll2->sll2_addr[4], sll2->sll2_addr[5]);
+        if(vlan == 0 || vlan == 2) {
             // IP TYPE = 0x86dd (IPv6) or 0x0800 (IPv4)
             type_ip = ntohs(sll2->sll2_protocol);
         }
@@ -517,15 +504,16 @@ void callback_proto(unsigned char *arg, struct pcap_pkthdr *pkthdr, unsigned cha
 
 ip_hdr_parse:
     if(is_only_gre == 1) {
-        ip4_pkt = (struct ip *)(packet + link_offset + hdr_offset + ipip_offset);
+        ip4_pkt = (struct ip *)(packet + hdr_len + hdr_offset + ipip_offset);
     }
     else if(type_ip == ETHERTYPE_IP || type_ip == ETHERTYPE_VLAN) {
-        ip4_pkt = (struct ip *)(packet + link_offset + hdr_offset + ipip_offset);
-    } else {
-#if USE_IPv6
-        ip6_pkt = (struct ip6_hdr*)(packet + link_offset + hdr_offset + ipip_offset);
-        #endif
+        ip4_pkt = (struct ip *)(packet + hdr_len + hdr_offset + ipip_offset);
     }
+#if USE_IPv6
+    else {
+        ip6_pkt = (struct ip6_hdr*)(packet + hdr_len + hdr_offset + ipip_offset);
+    }
+#endif
 
     uint32_t len = pkthdr->caplen;
     uint32_t ip_hl = 0;
@@ -541,16 +529,16 @@ ip_hdr_parse:
     if(profile_socket[loc_index].reasm && reasm[loc_index] != NULL) {
         unsigned new_len;
 
-        u_char *new_p = malloc(len - link_offset - hdr_offset);
-        memcpy(new_p, ip4_pkt, len - link_offset - hdr_offset);
+        u_char *new_p = malloc(len - hdr_len - hdr_offset);
+        memcpy(new_p, ip4_pkt, len - hdr_len - hdr_offset);
 
-        pack = reasm_ip_next(reasm[loc_index], new_p, len - link_offset - hdr_offset,
+        pack = reasm_ip_next(reasm[loc_index], new_p, len - hdr_len - hdr_offset,
                 (reasm_time_t) 1000000UL * pkthdr->ts.tv_sec + pkthdr->ts.tv_usec, &new_len);
 
         if (pack == NULL)
             return;
 
-        len = new_len + link_offset + hdr_offset;
+        len = new_len + hdr_len + hdr_offset;
         pkthdr->len = new_len;
         pkthdr->caplen = new_len;
 
@@ -582,7 +570,6 @@ ip_hdr_parse:
 
                     fragmented = ip_off & (IP_MF | IP_OFFMASK);
                     frag_offset = (fragmented) ? (ip_off & IP_OFFMASK) * 8 : 0;
-         //frag_id = ntohs(ip4_pkt->ip_id);
 
                     inet_ntop(AF_INET, (const void *) &ip4_pkt->ip_src, ip_src, sizeof(ip_src));
                     inet_ntop(AF_INET, (const void *) &ip4_pkt->ip_dst, ip_dst, sizeof(ip_dst));
@@ -603,7 +590,6 @@ ip_hdr_parse:
 
                         fragmented = 1;
                         frag_offset = ntohs(ip6_fraghdr->ip6f_offlg & IP6F_OFF_MASK);
-             //frag_id = ntohl(ip6_fraghdr->ip6f_ident);
                     }
 
                     inet_ntop(AF_INET6, (const void *)&ip6_pkt->ip6_src, ip_src, sizeof(ip_src));
@@ -631,26 +617,17 @@ ip_hdr_parse:
 
                               data = (unsigned char *) tcp_pkt + tcphdr_offset;
 
-         _msg.hdr_len = link_offset + hdr_offset + ip_hl + tcphdr_offset + ipip_offset;
+                              _msg.hdr_len = hdr_len + hdr_offset + ip_hl + tcphdr_offset + ipip_offset;
 
-         len -= link_offset + hdr_offset + ip_hl + tcphdr_offset + ipip_offset;
+                              len -= hdr_len + hdr_offset + ip_hl + tcphdr_offset + ipip_offset;
 
                               stats.received_tcp_packets++;
-
-         #if USE_IPv6
-         /* if (ip_ver == 6)
-            {
-            len -= (ntohs(ip6_pkt->ip6_plen)) + ipip_offset;
-            _msg.hdr_len += (ntohs(ip6_pkt->ip6_plen)) + ipip_offset;
-            }
-         */
-         #endif
 
                               if ((int32_t) len < 0)
                                   len = 0;
 
                               /******************* Check for Websocket layer (skip it) **************************/
-         int webLen = link_offset + hdr_offset + ip_hl + tcphdr_offset;
+                              int webLen = hdr_len + hdr_offset + ip_hl + tcphdr_offset;
                               uint8_t *p_websock = packet + webLen;
 
                               if(tcpreasm[loc_index] != NULL &&  (len > 0) && (tcp_pkt->th_flags & TH_ACK)) {
@@ -779,13 +756,13 @@ ip_hdr_parse:
                                   // Not full packet
                                   else {
 
-                _msg.len = pkthdr->caplen - link_offset - hdr_offset;
+                                      _msg.len = pkthdr->caplen - hdr_len - hdr_offset;
 
                                       if(websocket_detection == 1) {
                                           unsigned char decoded[3000];
                                           memset(decoded, 0, 3000);
                                           if(!websocket_pre_decode(p_websock, decoded, &_msg)) {
-                        _msg.data = (packet + link_offset + hdr_offset);
+                                              _msg.data = (packet + hdr_len + hdr_offset);
                                           }
                                       } else {
                                           _msg.data = data;
@@ -827,17 +804,9 @@ ip_hdr_parse:
 
                               data = (unsigned char *) (udp_pkt) + udphdr_offset;
 
-        _msg.hdr_len = link_offset + ip_hl + hdr_offset + udphdr_offset + ipip_offset;
+                              _msg.hdr_len = hdr_len + ip_hl + hdr_offset + udphdr_offset + ipip_offset;
 
-        len -= link_offset + ip_hl + udphdr_offset + hdr_offset + ipip_offset;
-
-        #if USE_IPv6
-        /*if (ip_ver == 6) {
-          len -= ntohs(ip6_pkt->ip6_plen);
-          _msg.hdr_len += ntohs(ip6_pkt->ip6_plen);
-          }
-        */
-        #endif
+                              len -= hdr_len + ip_hl + udphdr_offset + hdr_offset + ipip_offset;
 
                               /* stats */
                               stats.received_udp_packets++;
@@ -862,8 +831,8 @@ ip_hdr_parse:
                                   _msg.data = data;
                                   _msg.len = len;
                               } else {
-            _msg.len = pkthdr->caplen - link_offset - hdr_offset;
-            _msg.data = (packet + link_offset + hdr_offset);
+                                  _msg.len = pkthdr->caplen - hdr_len - hdr_offset;
+                                  _msg.data = (packet + hdr_len + hdr_offset);
                               }
 
 
@@ -889,13 +858,13 @@ ip_hdr_parse:
                                uint32_t chunk_read = 0;
 
                                /* attempt at input validation */
-        if (len <= link_offset + ip_hl + hdr_offset) {
+                               if (len <= hdr_len + ip_hl + hdr_offset) {
                                    LDEBUG("sctp: offset handling %zu vs. %zu",
-                   len, link_offset + ip_hl + hdr_offset);
+                                           len, hdr_len + ip_hl + hdr_offset);
                                    goto error;
                                }
 
-        len -= link_offset + ip_hl + hdr_offset;
+                               len -= hdr_len + ip_hl + hdr_offset;
                                sctp_hdr = (struct sctp_common_hdr *) ((uint8_t *)(ip4_pkt) + ip_hl);
                                plen = sctp_parse_common(&_msg, (uint8_t *)sctp_hdr, len);
 
@@ -909,7 +878,7 @@ ip_hdr_parse:
                                /* I don't understand the frag_offset in other protos */
 
                                /* same for the entire package */
-        _msg.hdr_len = link_offset + hdr_offset + ip_hl + sizeof(struct sctp_common_hdr);
+                               _msg.hdr_len = hdr_len + hdr_offset + ip_hl + sizeof(struct sctp_common_hdr);
                                _msg.rcinfo.src_ip = ip_src;
                                _msg.rcinfo.dst_ip = ip_dst;
                                _msg.rcinfo.src_mac = mac_src;
@@ -930,8 +899,8 @@ ip_hdr_parse:
                                }
 
                                /* default the full packet */
-        _msg.len = pkthdr->caplen - link_offset - hdr_offset;
-        _msg.data = (packet + link_offset + hdr_offset);
+                               _msg.len = pkthdr->caplen - hdr_len - hdr_offset;
+                               _msg.data = (packet + hdr_len + hdr_offset);
 
                                chunk_data = &sctp_hdr->data[0];
 
@@ -1219,48 +1188,48 @@ void* proto_collect(void *arg) {
     /* detect link_offset */
     switch (type_datalink) {
         case DLT_EN10MB:
-            link_offset = ETHER_HDR_LEN;
+            profile_socket[loc_idx].hdr_len = link_offset = ETHER_HDR_LEN;
             break;
 
         case DLT_IEEE802:
-            link_offset = TOKENRING_SIZE;
+            profile_socket[loc_idx].hdr_len = link_offset = TOKENRING_SIZE;
             break;
 
         case DLT_FDDI:
-            link_offset = FDDIHDR_SIZE;
+            profile_socket[loc_idx].hdr_len = link_offset = FDDIHDR_SIZE;
             break;
 
         case DLT_SLIP:
-            link_offset = SLIPHDR_SIZE;
+            profile_socket[loc_idx].hdr_len = link_offset = SLIPHDR_SIZE;
             break;
 
         case DLT_PPP:
-            link_offset = PPPHDR_SIZE;
+            profile_socket[loc_idx].hdr_len = link_offset = PPPHDR_SIZE;
             break;
 
         case DLT_LOOP:
         case DLT_NULL:
-            link_offset = LOOPHDR_SIZE;
+            profile_socket[loc_idx].hdr_len = link_offset = LOOPHDR_SIZE;
             break;
 
         case DLT_RAW:
-            link_offset = RAWHDR_SIZE;
+            profile_socket[loc_idx].hdr_len = link_offset = RAWHDR_SIZE;
             break;
 
         case DLT_LINUX_SLL:
-            link_offset = SLL_HDR_LEN;
+            profile_socket[loc_idx].hdr_len = link_offset = SLL_HDR_LEN;
             break;
 
         case DLT_LINUX_SLL2:
-            link_offset = SLL2_HDR_LEN;
+            profile_socket[loc_idx].hdr_len = link_offset = SLL2_HDR_LEN;
             break;
 
         case DLT_IEEE802_11:
-            link_offset = IEEE80211HDR_SIZE;
+            profile_socket[loc_idx].hdr_len = link_offset = IEEE80211HDR_SIZE;
             break;
 
         case DLT_MTP2:
-            link_offset = RAWHDR_SIZE;
+            profile_socket[loc_idx].hdr_len = link_offset = RAWHDR_SIZE;
             break;
 
         default:
@@ -1268,7 +1237,7 @@ void* proto_collect(void *arg) {
             exit(-1);
     } // switch
 
-    LDEBUG("Link offset interface type [%u] [%u]", type_datalink, link_offset);
+    LDEBUG("Link offset interface type [%u] [%u]", type_datalink, profile_socket[loc_idx].hdr_len);
 
     while(1) {
 

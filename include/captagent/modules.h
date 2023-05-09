@@ -38,7 +38,6 @@ typedef struct hep_module {
     int (*send_hep_advance)(void);
 } hep_module_t;
 
-
 typedef int (*init_function)(xml_node *config);
 typedef int (*destroy_function)(void);
 typedef int (*description_function)(char *descr);
@@ -81,7 +80,6 @@ typedef struct module_exports {
 
 } module_exports_t;
 
-
 int register_module(char *resource_name, xml_node *config, bool global);
 int register_modules(xml_node *tree);
 int unregister_modules(void);
@@ -89,6 +87,5 @@ int usecount(void);
 /* How many channels provided by this module are in use? */
 //char *description(void);                /* Description of this module */
 //int *statistic(char *stats, size_t len);                  /* Statistic of this module */
-
 
 #endif /* MODULES_H_ */
