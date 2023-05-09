@@ -362,7 +362,7 @@ void callback_proto(unsigned char *arg, struct pcap_pkthdr *pkthdr, unsigned cha
                 // 1. Normal GRE header (4 bytes)
                 if(tmp_pkt[0] == 0x00 && tmp_pkt[1] == 0x00) {
                     erspan_offset = link_offset /* + extra_sll */ + tmp_ip_len + GREHDR_SIZE; // Ethernet + IP + GRE
-                    // Check if it's ERSPAN Type II (8 bytes of ERSPAN II)
+                                                                                              // Check if it's ERSPAN Type II (8 bytes of ERSPAN II)
                     if(tmp_pkt[4]>>4 == 1) {
                         erspan_offset += ERSPAN_II_OFF; // Ethernet + IP + GRE II (GRE+SeqNum) + ERSPAN II
                     }
@@ -370,7 +370,7 @@ void callback_proto(unsigned char *arg, struct pcap_pkthdr *pkthdr, unsigned cha
                 // 2. Extended GRE header (4 bytes GRE + 4 Sequence Number)
                 else if(tmp_pkt[0] == 0x10 && tmp_pkt[1] == 0x00) {
                     erspan_offset = link_offset /* + extra_sll */ + tmp_ip_len + GREHDR_SIZE_II; // Ethernet + IP + GRE II
-                    // Check if it's ERSPAN Type II (8 bytes of ERSPAN II)
+                                                                                                 // Check if it's ERSPAN Type II (8 bytes of ERSPAN II)
                     if(tmp_pkt[8]>>4 == 1) {
                         erspan_offset += ERSPAN_II_OFF; // Ethernet + IP + GRE II (GRE+SeqNum) + ERSPAN II
                     }
@@ -381,7 +381,7 @@ void callback_proto(unsigned char *arg, struct pcap_pkthdr *pkthdr, unsigned cha
                 // 1. Normal GRE header (4 bytes)
                 if(tmp_pkt[0] == 0x00 && tmp_pkt[1] == 0x00) {
                     erspan_offset = link_offset /* + extra_sll */ + tmp_ip_len + GREHDR_SIZE; // Ethernet + IP + GRE
-                    // Check if it's ERSPAN Type III (12 bytes of ERSPAN II)
+                                                                                              // Check if it's ERSPAN Type III (12 bytes of ERSPAN II)
                     if(tmp_pkt[4]>>4 == 2) {
                         erspan_offset += ERSPAN_III_OFF; // Ethernet + IP + GRE II (GRE+SeqNum) + ERSPAN II
                     }
@@ -389,7 +389,7 @@ void callback_proto(unsigned char *arg, struct pcap_pkthdr *pkthdr, unsigned cha
                 // 2. Extended GRE header (4 bytes GRE + 4 Sequence Number)
                 else if(tmp_pkt[0] == 0x10 && tmp_pkt[1] == 0x00) {
                     erspan_offset = link_offset /* + extra_sll */ + tmp_ip_len + GREHDR_SIZE_II; // Ethernet + IP + GRE II
-                    // Check if it's ERSPAN Type III (12 bytes of ERSPAN II)
+                                                                                                 // Check if it's ERSPAN Type III (12 bytes of ERSPAN II)
                     if(tmp_pkt[8]>>4 == 2) {
                         erspan_offset += ERSPAN_III_OFF; // Ethernet + IP + GRE II (GRE+SeqNum) + ERSPAN III
                     }
@@ -497,14 +497,14 @@ void callback_proto(unsigned char *arg, struct pcap_pkthdr *pkthdr, unsigned cha
             // IP TYPE = 0x86dd (IPv6) or 0x0800 (IPv4) or (0x8100 VLAN)
             type_ip = ntohs(eth->ether_type);
         }
-    }
+        }
     /* Linux cooked capture (v1 and v2) shows only Source MAC address */
     else if (sll) {
         snprintf(mac_src, sizeof(mac_src), "%.2X-%.2X-%.2X-%.2X-%.2X-%.2X", sll->sll_addr[0], sll->sll_addr[1], sll->sll_addr[2], sll->sll_addr[3], sll->sll_addr[4], sll->sll_addr[5]);
         if(vlan == 0) {
             // IP TYPE = 0x86dd (IPv6) or 0x0800 (IPv4)
             type_ip = ntohs(sll->sll_protocol);
-        }
+    }
     } else if (sll2) {
         snprintf(mac_src, sizeof(mac_src), "%.2X-%.2X-%.2X-%.2X-%.2X-%.2X", sll2->sll2_addr[0], sll2->sll2_addr[1], sll2->sll2_addr[2], sll2->sll2_addr[3], sll2->sll2_addr[4], sll2->sll2_addr[5]);
         if(vlan == 0) {
@@ -515,14 +515,14 @@ void callback_proto(unsigned char *arg, struct pcap_pkthdr *pkthdr, unsigned cha
 
     /** IP LAYER **/
 
- ip_hdr_parse:
+ip_hdr_parse:
     if(is_only_gre == 1) {
         ip4_pkt = (struct ip *)(packet + link_offset + hdr_offset + ipip_offset);
     }
     else if(type_ip == ETHERTYPE_IP || type_ip == ETHERTYPE_VLAN) {
         ip4_pkt = (struct ip *)(packet + link_offset + hdr_offset + ipip_offset);
     } else {
-        #if USE_IPv6
+#if USE_IPv6
         ip6_pkt = (struct ip6_hdr*)(packet + link_offset + hdr_offset + ipip_offset);
         #endif
     }

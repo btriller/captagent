@@ -34,8 +34,8 @@ extern char *module_path;
 struct rc_info;
 
 typedef struct hep_module {
-        int (*send_hep_basic)(struct rc_info *rcinfo, unsigned char *data, unsigned int len);
-        int (*send_hep_advance)(void);
+    int (*send_hep_basic)(struct rc_info *rcinfo, unsigned char *data, unsigned int len);
+    int (*send_hep_advance)(void);
 } hep_module_t;
 
 
@@ -47,38 +47,38 @@ typedef void (*onbreak_function)(msg_t* msg);
 typedef uint64_t (*serial_function)(void);
 
 typedef struct module {
-        init_function load_f;
-	destroy_function unload_f;
-	description_function description_f;
-	statistic_function stats_f;
-	serial_function serial_f;
-	onbreak_function onbreak_f;
-	cmd_export_t* cmds;
-        void *lib;
-        char *path;
-        char name[256];
-        struct module *next;
+    init_function load_f;
+    destroy_function unload_f;
+    description_function description_f;
+    statistic_function stats_f;
+    serial_function serial_f;
+    onbreak_function onbreak_f;
+    cmd_export_t* cmds;
+    void *lib;
+    char *path;
+    char name[256];
+    struct module *next;
 } module_t;
 
 typedef struct module_exports {
-        char* name;
-        cmd_export_t* cmds;
-        init_function load_f;
-    	destroy_function unload_f;
-    	description_function description_f;
-    	statistic_function stats_f;
-	serial_function serial_f;
-	onbreak_function onbreak_f;
-	
-	char** param_names;    /* parameter names registered by this modules */
-	char** cmd_names;               /* cmd names registered by this modules */
-	int cmd_no;                     /* number of registered commands */
-        int par_no;            /* number of registered parameters */
-        int* param_no;                  /* number of parameters used*/
-        cmd_function* cmd_pointers;     /* pointers to the corresponding functions */
-        modparam_t* param_types; /* Type of parameters */
-        void** param_pointers; /* Pointers to the corresponding memory locations */
-	        
+    char* name;
+    cmd_export_t* cmds;
+    init_function load_f;
+    destroy_function unload_f;
+    description_function description_f;
+    statistic_function stats_f;
+    serial_function serial_f;
+    onbreak_function onbreak_f;
+
+    char** param_names;    /* parameter names registered by this modules */
+    char** cmd_names;               /* cmd names registered by this modules */
+    int cmd_no;                     /* number of registered commands */
+    int par_no;            /* number of registered parameters */
+    int* param_no;                  /* number of parameters used*/
+    cmd_function* cmd_pointers;     /* pointers to the corresponding functions */
+    modparam_t* param_types; /* Type of parameters */
+    void** param_pointers; /* Pointers to the corresponding memory locations */
+
 } module_exports_t;
 
 
